@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <stdint.h>
 
 namespace Ui {
 class MainWindow;
@@ -20,6 +21,10 @@ public:
     bool updateMeterCfg(void);
     bool updateGeneralWeatherMeasure(void);
     bool updateLockAutomCfg(void);
+    bool updateIoCfg(void);
+    bool updateModbusSlaveCfg(void);
+    bool updateEthCfg(void);
+    bool updateRsCfg(void);
 
     void setCfgStructs(char* buf);
     bool setGeneralCfg(void);
@@ -30,6 +35,12 @@ public:
     bool setWeatherAutomCfg(int id);
     bool setLockAutomCfg(void);
     bool setCircuitCfg(int id);
+    bool setIoCfg(void);
+    bool setModbusSlaveCfg(void);
+    bool setEthCfg(void);
+    bool setRsCfg(void);
+
+    int checkIoMod(uint8_t module_id, uint8_t input_output_type, QString text);
 
 private slots:
     void on_actionOtw_rz_triggered();
@@ -63,6 +74,8 @@ private slots:
     void on_editCircuitList_clicked();
 
     void on_circuitList_currentRowChanged(int currentRow);
+
+    void on_modbusSlaveMediumCmb_currentIndexChanged(int index);
 
 private:
     Ui::MainWindow *ui;

@@ -102,6 +102,11 @@ void MainWindow::on_actionOtw_rz_triggered()
         QMessageBox::critical(this, "Błąd", "Zapisz zmiany w automatach pogodowych");
         return;
     }
+    if(ui->editCircuitList->text() == "Zapisz zmiany")
+    {
+        QMessageBox::critical(this, "Błąd", "Zapisz zmiany w obwodach sterowania");
+        return;
+    }
 
     fileNameToOpen = QFileDialog::getOpenFileName(this, "Otwórz plik konfiguracji", "koneor.bin", "koneor.bin");
 
@@ -158,6 +163,10 @@ void MainWindow::on_actionOtw_rz_triggered()
             setWeatherAutomCfg(0);
             setLockAutomCfg();
             setCircuitCfg(0);
+            setIoCfg();
+            setModbusSlaveCfg();
+            setEthCfg();
+            setRsCfg();
         }
         else
         {
@@ -185,6 +194,11 @@ void MainWindow::on_actionZapisz_triggered()
         QMessageBox::critical(this, "Błąd", "Zapisz zmiany w automatach pogodowych");
         return;
     }
+    if(ui->editCircuitList->text() == "Zapisz zmiany")
+    {
+        QMessageBox::critical(this, "Błąd", "Zapisz zmiany w obwodach sterowania");
+        return;
+    }
 
     fileNameToSave = QFileDialog::getSaveFileName(this, "Zapisz plik konfiguracji", "koneor.bin", "koneor.bin");
 
@@ -205,44 +219,38 @@ void MainWindow::on_actionZapisz_triggered()
             //todo na koniec crc16
 
             if(updateGeneralCfg() == false)
-            {
                 QMessageBox::critical(this, "Błąd", "Błąd parametrów w części \"Podstawowe\"");
-                return;
-            }
+
             fileBuf.append((char*)&general_cfg, sizeof(general_cfg_t));
             fileBuf.append((char*)user_cfg, sizeof(user_cfg_t) * USER_COUNT);
             if(updateIOModuleCfg() == false)
-            {
                 QMessageBox::critical(this, "Błąd", "Błędna wartość w polu adres w modułach IO");
-                return;
-            }
+
             fileBuf.append((char*)io_module_cfg, sizeof(io_module_cfg_t) * IO_MODULE_COUNT);
             if(updateJsn2Cfg() == false)
-            {
                 QMessageBox::critical(this, "Błąd", "Błędna wartość w polu adres w modułach JSN-2");
-                return;
-            }
+
             fileBuf.append((char*)jsn2_module_cfg, sizeof(jsn2_module_cfg_t) * JSN2_MODULE_COUNT);
             if(updateMeterCfg() == false)
-            {
                 QMessageBox::critical(this, "Błąd", "Błędny numer seryjny licznika energii");
-                return;
-            }
+
             fileBuf.append((char*)meter_cfg, sizeof(meter_cfg_t) * METER_COUNT);
-            if(updateGeneralWeatherMeasure() == false)
-                return;
+            updateGeneralWeatherMeasure();
             fileBuf.append((char*)&general_weather_measure_cfg, sizeof(general_weather_measure_cfg_t));
             fileBuf.append((char*)weather_autom_cfg, sizeof(weather_autom_cfg_t) * WEATHER_AUTOM_COUNT);
-            if(updateLockAutomCfg() == false)
-                return;
+            updateLockAutomCfg();
             fileBuf.append((char*)&lock_autom_cfg, sizeof(lock_autom_cfg_t));
             fileBuf.append((char*)circuit_cfg, sizeof(circuit_cfg_t) * CIRCUIT_COUNT);
             fileBuf.append((char*)&group_cfg, sizeof(group_cfg_t));
+            updateIoCfg();
             fileBuf.append((char*)&io_cfg, sizeof(io_cfg_t));
             fileBuf.append((char*)&can_cfg, sizeof(can_cfg_t));
+            updateModbusSlaveCfg();
             fileBuf.append((char*)&modbus_slave_cfg, sizeof(modbus_slave_cfg_t));
             fileBuf.append((char*)&tgfm_cfg, sizeof(tgfm_cfg_t));
+            updateRsCfg();
             fileBuf.append((char*)rs_cfg, sizeof(rs_cfg_t) * RS_COUNT);
+            updateEthCfg();
             fileBuf.append((char*)&eth_cfg, sizeof(eth_cfg_t));
 
             cBuf = fileBuf.data();
@@ -493,7 +501,6 @@ bool MainWindow::setMeterCfg(void)
 
 bool MainWindow::updateGeneralWeatherMeasure(void)
 {
-    QComboBox *cb;
     bool ret = true;
     uint8_t addr = ui->generalTempSensorAddr->value();
     uint16_t reg_no = ui->generalTempSensorRegNo->value();
@@ -506,20 +513,8 @@ bool MainWindow::updateGeneralWeatherMeasure(void)
     switch(general_weather_measure_cfg.temperature_sensor.type)
     {
     case 0:     //TH
-        if(addr >= ui->ioModulesTable->rowCount())
-        {
-            QMessageBox::critical(this, "Błąd", "Ogólne pomiary pogody - czujnik temperatury otoczenia\nNie ma modułu IO o podanym numerze.");
-            ret = false;
-        }
-        else
-        {
-            cb = (QComboBox*)ui->ioModulesTable->cellWidget(addr - 1, 0);
-            if(cb->currentIndex() != 1)
-            {
-                QMessageBox::critical(this, "Błąd", "Ogólne pomiary pogody - czujnik temperatury otoczenia\nModuł o podanym numerze nie jest modułem TH.");
-                ret = false;
-            }
-        }
+        if(checkIoMod(addr, 2, "Ogólne pomiary pogody - czujnik temperatury otoczenia") == 1)
+            return false;
         break;
     case 1:     //CAN
         break;
@@ -535,25 +530,8 @@ bool MainWindow::updateGeneralWeatherMeasure(void)
     switch(general_weather_measure_cfg.snow_fall_sensor.type)
     {
     case 0:     //io
-        if(addr >= ui->ioModulesTable->rowCount())
-        {
-            QMessageBox::critical(this, "Błąd", "Ogólne pomiary pogody - czujnik opadu\nNie ma modułu IO o podanym numerze.");
-            ret = false;
-        }
-        else
-        {
-            cb = (QComboBox*)ui->ioModulesTable->cellWidget(addr - 1, 0);
-            if((cb->currentIndex() != 0) &&         /* io10/5 */
-                    (cb->currentIndex() != 1) &&    /* th     */
-                    (cb->currentIndex() != 2) &&    /* i12    */
-                    (cb->currentIndex() != 3) &&    /* i20    */
-                    (cb->currentIndex() != 7) &&    /* io4/7  */
-                    (cb->currentIndex() != 9))      /* gmr io */
-            {
-                QMessageBox::critical(this, "Błąd", "Ogólne pomiary pogody - czujnik opadu\nModuł o podanym numerze nie ma wejść cyfrowych.");
-                ret = false;
-            }
-        }
+        if(checkIoMod(addr, 0, "Ogólne pomiary pogody - czujnik opadu") == 1)
+            return false;
         break;
     case 1:     //can
         break;
@@ -705,6 +683,335 @@ bool MainWindow::setLockAutomCfg(void)
     return true;
 }
 
+bool MainWindow::updateIoCfg(void)
+{
+    io_cfg.sensor_pwr_ctrl.active = ui->sensorPwrCtrlChk->isChecked();
+    io_cfg.sensor_pwr_ctrl.module_id = ui->sensorPwrCtrlIOMod->value();
+    io_cfg.sensor_pwr_ctrl.bit_no = ui->sensorPwrCtrlBitNo->value();
+    if(io_cfg.sensor_pwr_ctrl.active != 0)
+        checkIoMod(io_cfg.sensor_pwr_ctrl.module_id, 0, "Potwierdzenie zasilania czujników");
+
+    io_cfg.dor.active = ui->dorChk->isChecked();
+    io_cfg.dor.module_id = ui->dorIOMod->value();
+    io_cfg.dor.bit_no = ui->dorBitNo->value();
+    if(io_cfg.dor.active != 0)
+        checkIoMod(io_cfg.dor.module_id, 0, "Otwarcie drzwi szafy");
+
+    io_cfg.break_in.active = ui->breakInChk->isChecked();
+    io_cfg.break_in.module_id = ui->breakInIOMod->value();
+    io_cfg.break_in.bit_no = ui->breakInBitNo->value();
+    if(io_cfg.break_in.active != 0)
+        checkIoMod(io_cfg.break_in.module_id, 0, "Otwarcie klapy transformatora");
+
+    io_cfg.surge_protect.active = ui->surgeProtectChk->isChecked();
+    io_cfg.surge_protect.module_id = ui->surgeProtectIOMod->value();
+    io_cfg.surge_protect.bit_no = ui->surgeProtectBitNo->value();
+    if(io_cfg.surge_protect.active != 0)
+        checkIoMod(io_cfg.surge_protect.module_id, 0, "Potwierdzenie zabezpieczenia antyprzepięciowego");
+
+    io_cfg.remote_ctrl.active = ui->remoteCtrlChk->isChecked();
+    io_cfg.remote_ctrl.module_id = ui->remoteCtrlIOMod->value();
+    io_cfg.remote_ctrl.bit_no = ui->remoteCtrlBitNo->value();
+    if(io_cfg.remote_ctrl.active != 0)
+        checkIoMod(io_cfg.remote_ctrl.module_id, 0, "Sterowanie zdalne");
+
+    io_cfg.local_ctrl.active = ui->localCtrlChk->isChecked();
+    io_cfg.local_ctrl.module_id = ui->localCtrlIOMod->value();
+    io_cfg.local_ctrl.bit_no = ui->localCtrlBitNo->value();
+    if(io_cfg.local_ctrl.active != 0)
+        checkIoMod(io_cfg.local_ctrl.module_id, 0, "Sterowanie lokalne");
+
+    io_cfg.hand_ctrl.active = ui->handCtrlChk->isChecked();
+    io_cfg.hand_ctrl.module_id = ui->handCtrlIOMod->value();
+    io_cfg.hand_ctrl.bit_no = ui->handCtrlBitNo->value();
+    if(io_cfg.hand_ctrl.active != 0)
+        checkIoMod(io_cfg.hand_ctrl.module_id, 0, "Sterowanie ręczne");
+
+    return true;
+}
+
+bool MainWindow::setIoCfg(void)
+{
+    if(io_cfg.sensor_pwr_ctrl.active == 0)
+       ui->sensorPwrCtrlChk->setChecked(false);
+    else
+        ui->sensorPwrCtrlChk->setChecked(true);
+    ui->sensorPwrCtrlIOMod->setValue(io_cfg.sensor_pwr_ctrl.module_id);
+    ui->sensorPwrCtrlBitNo->setValue(io_cfg.sensor_pwr_ctrl.bit_no);
+
+    if(io_cfg.dor.active == 0)
+        ui->dorChk->setChecked(false);
+    else
+        ui->dorChk->setChecked(true);
+    ui->dorIOMod->setValue(io_cfg.dor.module_id);
+    ui->dorBitNo->setValue(io_cfg.dor.bit_no);
+
+    if(io_cfg.break_in.active == 0)
+        ui->breakInChk->setChecked(false);
+    else
+        ui->breakInChk->setChecked(true);
+    ui->breakInIOMod->setValue(io_cfg.break_in.module_id);
+    ui->breakInBitNo->setValue(io_cfg.break_in.bit_no);
+
+    if(io_cfg.surge_protect.active == 0)
+        ui->surgeProtectChk->setChecked(false);
+    else
+        ui->surgeProtectChk->setChecked(true);
+    ui->surgeProtectIOMod->setValue(io_cfg.surge_protect.module_id);
+    ui->surgeProtectBitNo->setValue(io_cfg.surge_protect.bit_no);
+
+    if(io_cfg.remote_ctrl.active == 0)
+        ui->remoteCtrlChk->setChecked(false);
+    else
+        ui->remoteCtrlChk->setChecked(true);
+    ui->remoteCtrlIOMod->setValue(io_cfg.remote_ctrl.module_id);
+    ui->remoteCtrlBitNo->setValue(io_cfg.remote_ctrl.bit_no);
+
+    ui->localCtrlChk->setChecked(true);
+    ui->localCtrlIOMod->setValue(io_cfg.local_ctrl.module_id);
+    ui->localCtrlBitNo->setValue(io_cfg.local_ctrl.bit_no);
+
+    ui->handCtrlChk->setChecked(true);
+    ui->handCtrlIOMod->setValue(io_cfg.hand_ctrl.module_id);
+    ui->handCtrlBitNo->setValue(io_cfg.hand_ctrl.bit_no);
+
+    return true;
+}
+
+bool MainWindow::updateModbusSlaveCfg(void)
+{
+    modbus_slave_cfg.active = ui->modbusSlaveActiveChk->isChecked();
+    modbus_slave_cfg.addr = ui->modbusSlaveAddr->value();
+    modbus_slave_cfg.transmission_medium = ui->modbusSlaveMediumCmb->currentIndex();
+    modbus_slave_cfg.port_no = ui->modbusSlavePort->value();
+    modbus_slave_cfg.accept_cmd = ui->modbusSlaveAcceptCmdChk->isChecked();
+    return true;
+}
+
+bool MainWindow::setModbusSlaveCfg(void)
+{
+    if(modbus_slave_cfg.active == 0)
+        ui->modbusSlaveActiveChk->setChecked(false);
+    else
+        ui->modbusSlaveActiveChk->setChecked(true);
+    ui->modbusSlaveAddr->setValue(modbus_slave_cfg.addr);
+    ui->modbusSlaveMediumCmb->setCurrentIndex(modbus_slave_cfg.transmission_medium);
+    ui->modbusSlavePort->setValue(modbus_slave_cfg.port_no);
+    if(modbus_slave_cfg.accept_cmd == 0)
+        ui->modbusSlaveAcceptCmdChk->setChecked(false);
+    else
+        ui->modbusSlaveAcceptCmdChk->setChecked(true);
+
+    return true;
+}
+
+static bool strToIp(uint8_t *ip, QString string)
+{
+    QStringList list;
+    int i;
+    int val;
+    bool err = false;
+    bool ok;
+
+    list = string.split(".");
+    if(list.size() < 4)
+    {
+        err = true;
+    }
+    else
+    {
+        for(i = 0; i < 4; i++)
+        {
+            val = list[i].toInt(&ok);
+            if((ok == false) || (val < 0) || (val > 255))
+            {
+                err = true;
+                break;
+            }
+            else
+            {
+                ip[i] = val;
+            }
+        }
+    }
+    return err;
+}
+
+bool MainWindow::updateEthCfg(void)
+{
+    bool ip_err = false;
+    bool mask_err = false;
+    bool gateway_err = false;
+
+    ip_err = strToIp(eth_cfg.ip, ui->ipAddrEdit->text());
+    if(ip_err)
+        QMessageBox::critical(this, "Błąd", "Błąd w adresie IP");
+
+    mask_err = strToIp(eth_cfg.mask, ui->maskEdit->text());
+    if(mask_err)
+        QMessageBox::critical(this, "Błąd", "Błąd w masce podsieci");
+
+    gateway_err = strToIp(eth_cfg.gateway, ui->gatewayEdit->text());
+    if(gateway_err)
+        QMessageBox::critical(this, "Błąd", "Błąd w adresie IP bramy domyślnej");
+
+    return !(ip_err || mask_err || gateway_err);
+}
+
+bool MainWindow::setEthCfg(void)
+{
+    ui->ipAddrEdit->setText(QString("%1.%2.%3.%4").arg(eth_cfg.ip[0]).arg(eth_cfg.ip[1]).arg(eth_cfg.ip[2]).arg(eth_cfg.ip[3]));
+    ui->maskEdit->setText(QString("%1.%2.%3.%4").arg(eth_cfg.mask[0]).arg(eth_cfg.mask[1]).arg(eth_cfg.mask[2]).arg(eth_cfg.mask[3]));
+    ui->gatewayEdit->setText(QString("%1.%2.%3.%4").arg(eth_cfg.gateway[0]).arg(eth_cfg.gateway[1]).arg(eth_cfg.gateway[2]).arg(eth_cfg.gateway[3]));
+
+    return true;
+}
+
+bool MainWindow::updateRsCfg(void)
+{
+    bool ok;
+    bool err = false;
+
+    rs_cfg[0].active = ui->rsActiveChk->isChecked();
+    rs_cfg[0].type = 0;			//fizyczny
+    rs_cfg[0].baud = ui->rsBaudrateCmb->currentText().toInt(&ok);
+    rs_cfg[0].stop_bits = ui->rsStopBitsCmb->currentIndex();
+    rs_cfg[0].parity = ui->rsParityCmb->currentIndex();
+    rs_cfg[0].protocol = ui->rsProtocolCmb->currentIndex();
+    if((ok == false) && (rs_cfg[0].active != 0))
+        QMessageBox::critical(this, "Błąd", "RS232/485 - błędnie wprowadzone Baudrate");
+
+    rs_cfg[1].active = ui->virtRs1ActiveChk->isChecked();
+    rs_cfg[1].type = 1;			//wirtualny
+    rs_cfg[1].port = ui->virtRs1Port->value();
+    if((err |= strToIp(rs_cfg[1].server_ip, ui->virtRs1IpAddrEdit->text())) && (rs_cfg[1].active != 0))
+        QMessageBox::critical(this, "Błąd", "Błąd w adresie IP wirtualnego portu 1");
+    rs_cfg[1].protocol = ui->virtRs1ProtocolCmb->currentIndex();
+
+    rs_cfg[2].active = ui->virtRs2ActiveChk->isChecked();
+    rs_cfg[2].type = 1;			//wirtualny
+    rs_cfg[2].port = ui->virtRs2Port->value();
+    if((err |= strToIp(rs_cfg[2].server_ip, ui->virtRs2IpAddrEdit->text())) && (rs_cfg[2].active != 0))
+        QMessageBox::critical(this, "Błąd", "Błąd w adresie IP wirtualnego portu 2");
+    rs_cfg[2].protocol = ui->virtRs2ProtocolCmb->currentIndex();
+
+    rs_cfg[3].active = ui->virtRs3ActiveChk->isChecked();
+    rs_cfg[3].type = 1;			//wirtualny
+    rs_cfg[3].port = ui->virtRs3Port->value();
+    if((err |= strToIp(rs_cfg[3].server_ip, ui->virtRs3IpAddrEdit->text())) && (rs_cfg[3].active != 0))
+        QMessageBox::critical(this, "Błąd", "Błąd w adresie IP wirtualnego portu 3");
+    rs_cfg[3].protocol = ui->virtRs3ProtocolCmb->currentIndex();
+
+    rs_cfg[4].active = ui->virtRs4ActiveChk->isChecked();
+    rs_cfg[4].type = 1;			//wirtualny
+    rs_cfg[4].port = ui->virtRs4Port->value();
+    if((err |= strToIp(rs_cfg[4].server_ip, ui->virtRs4IpAddrEdit->text())) && (rs_cfg[4].active != 0))
+        QMessageBox::critical(this, "Błąd", "Błąd w adresie IP wirtualnego portu 4");
+    rs_cfg[4].protocol = ui->virtRs4ProtocolCmb->currentIndex();
+
+    return (err | ok);
+}
+
+bool MainWindow::setRsCfg(void)
+{
+    if(rs_cfg[0].active == 0)
+        ui->rsActiveChk->setChecked(false);
+    else
+        ui->rsActiveChk->setChecked(true);
+    ui->rsBaudrateCmb->setCurrentText(QString::number(rs_cfg[0].baud));
+    ui->rsStopBitsCmb->setCurrentIndex(rs_cfg[0].stop_bits);
+    ui->rsParityCmb->setCurrentIndex(rs_cfg[0].parity);
+    ui->rsProtocolCmb->setCurrentIndex(rs_cfg[0].protocol);
+
+    if(rs_cfg[1].active == 0)
+        ui->virtRs1ActiveChk->setChecked(false);
+    else
+        ui->virtRs1ActiveChk->setChecked(true);
+    ui->virtRs1Port->setValue(rs_cfg[1].port);
+    ui->virtRs1IpAddrEdit->setText(QString("%1.%2.%3.%4").arg(rs_cfg[1].server_ip[0]).arg(rs_cfg[1].server_ip[1]).arg(rs_cfg[1].server_ip[2]).arg(rs_cfg[1].server_ip[3]));
+    ui->virtRs1ProtocolCmb->setCurrentIndex(rs_cfg[1].protocol);
+
+    if(rs_cfg[2].active == 0)
+        ui->virtRs2ActiveChk->setChecked(false);
+    else
+        ui->virtRs2ActiveChk->setChecked(true);
+    ui->virtRs2Port->setValue(rs_cfg[2].port);
+    ui->virtRs2IpAddrEdit->setText(QString("%1.%2.%3.%4").arg(rs_cfg[2].server_ip[0]).arg(rs_cfg[2].server_ip[1]).arg(rs_cfg[2].server_ip[2]).arg(rs_cfg[2].server_ip[3]));
+    ui->virtRs2ProtocolCmb->setCurrentIndex(rs_cfg[2].protocol);
+
+    if(rs_cfg[3].active == 0)
+        ui->virtRs3ActiveChk->setChecked(false);
+    else
+        ui->virtRs3ActiveChk->setChecked(true);
+    ui->virtRs3Port->setValue(rs_cfg[3].port);
+    ui->virtRs3IpAddrEdit->setText(QString("%1.%2.%3.%4").arg(rs_cfg[3].server_ip[0]).arg(rs_cfg[3].server_ip[1]).arg(rs_cfg[3].server_ip[2]).arg(rs_cfg[3].server_ip[3]));
+    ui->virtRs1ProtocolCmb->setCurrentIndex(rs_cfg[3].protocol);
+
+    if(rs_cfg[4].active == 0)
+        ui->virtRs4ActiveChk->setChecked(false);
+    else
+        ui->virtRs4ActiveChk->setChecked(true);
+    ui->virtRs4Port->setValue(rs_cfg[4].port);
+    ui->virtRs4IpAddrEdit->setText(QString("%1.%2.%3.%4").arg(rs_cfg[4].server_ip[0]).arg(rs_cfg[4].server_ip[1]).arg(rs_cfg[4].server_ip[2]).arg(rs_cfg[4].server_ip[3]));
+    ui->virtRs4ProtocolCmb->setCurrentIndex(rs_cfg[4].protocol);
+
+    return true;
+}
+
+int MainWindow::checkIoMod(uint8_t module_id, uint8_t input_output_type, QString text)
+{
+    //type: 0 - digital input
+    //      1 - digital output
+    //      2 - TH
+    //      3 - CVM
+    QComboBox *cb;
+
+    if(module_id > ui->ioModulesTable->rowCount())
+        return QMessageBox::critical(this, "Błąd", text + QString("\nNie ma modułu IO o podanym numerze."), "Ignoruj", "Popraw");
+
+    switch(input_output_type)
+    {
+    case 0:     //digital input
+        cb = (QComboBox*)ui->ioModulesTable->cellWidget(module_id - 1, 0);
+        if((cb->currentIndex() != 0) &&         /* io10/5 */
+                (cb->currentIndex() != 1) &&    /* th     */
+                (cb->currentIndex() != 2) &&    /* i12    */
+                (cb->currentIndex() != 3) &&    /* i20    */
+                (cb->currentIndex() != 7) &&    /* io4/7  */
+                (cb->currentIndex() != 9))      /* gmr io */
+        {
+            return QMessageBox::critical(this, "Błąd", text + QString("\nModuł o podanym numerze nie ma wejść cyfrowych."), "Ignoruj", "Popraw");
+        }
+        break;
+    case 1:     //digital output
+        cb = (QComboBox*)ui->ioModulesTable->cellWidget(module_id - 1, 0);
+        if((cb->currentIndex() != 0) &&         /* io10/5 */
+                (cb->currentIndex() != 4) &&    /* o10    */
+                (cb->currentIndex() != 7) &&    /* io4/7  */
+                (cb->currentIndex() != 9))      /* gmr io */
+        {
+            return QMessageBox::critical(this, "Błąd", text +  QString("\nModuł o podanym numerze nie ma wyjść cyfrowych."), "Ignoruj", "Popraw");
+        }
+        break;
+    case 2:     //TH
+        cb = (QComboBox*)ui->ioModulesTable->cellWidget(module_id - 1, 0);
+        if(cb->currentIndex() != 1)
+        {
+            return QMessageBox::critical(this, "Błąd", text + QString("\nModuł o podanym numerze nie jest modułem TH."), "Ignoruj", "Popraw");
+        }
+        break;
+    case 3:     //CVM
+        cb = (QComboBox*)ui->ioModulesTable->cellWidget(module_id - 1, 0);
+        if(cb->currentIndex() != 5)         /* CVM */
+        {
+            return QMessageBox::critical(this, "Błąd", text + QString("\nModuł o podanym numerze nie jest modułem CVM."), "Ignoruj", "Popraw");
+        }
+        break;
+    }
+
+    return 0;
+}
+
 void MainWindow::on_addIoModuleBtn_clicked()
 {
     QComboBox* cb;
@@ -722,7 +1029,7 @@ void MainWindow::on_addIoModuleBtn_clicked()
         cb->addItem(QString("I12"), 4);
         cb->addItem(QString("I20"), 5);
         cb->addItem(QString("O10"), 6);
-        cb->addItem(QString("CVM"), 7);
+        cb->addItem(QString("CVM"), 13);
         cb->addItem(QString("ISC3"), 10);
         cb->addItem(QString("IO4/7"), 11);
         cb->addItem(QString("O8"), 12);
@@ -885,7 +1192,6 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
 {
     int currentRow = ui->weatherAutomList->currentRow();
     QDoubleSpinBox *spin;
-    QComboBox *cb;
 
     if(ui->editWeatherAutomBtn->text() == "Zmień ustawienia")
     {
@@ -915,25 +1221,8 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
         switch(weather_autom_cfg[currentRow].snow_blow_sensor.type)
         {
         case 0:     //io
-            if(weather_autom_cfg[currentRow].snow_blow_sensor.addr >= ui->ioModulesTable->rowCount())
-            {
-                QMessageBox::critical(this, "Błąd", "Czujnik śniegu nawianego\nNie ma modułu IO o podanym numerze.");
+            if(checkIoMod(weather_autom_cfg[currentRow].snow_blow_sensor.addr, 0, "Czujnik śniegu nawianego") == 1)
                 return;
-            }
-            else
-            {
-                cb = (QComboBox*)ui->ioModulesTable->cellWidget(weather_autom_cfg[currentRow].snow_blow_sensor.addr - 1, 0);
-                if((cb->currentIndex() != 0) &&         /* io10/5 */
-                        (cb->currentIndex() != 1) &&    /* th     */
-                        (cb->currentIndex() != 2) &&    /* i12    */
-                        (cb->currentIndex() != 3) &&    /* i20    */
-                        (cb->currentIndex() != 7) &&    /* io4/7  */
-                        (cb->currentIndex() != 9))      /* gmr io */
-                {
-                    QMessageBox::critical(this, "Błąd", "Czujnik śniegu nawianego\nModuł o podanym numerze nie ma wejść cyfrowych.");
-                    return;
-                }
-            }
             break;
         case 1:     //can
             break;
@@ -944,20 +1233,8 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
         switch(weather_autom_cfg[currentRow].t_hot.type)
         {
         case 0:     //TH
-            if(weather_autom_cfg[currentRow].t_hot.addr >= ui->ioModulesTable->rowCount())
-            {
-                QMessageBox::critical(this, "Błąd", "Czujnik temperatury szyny grzanej\nNie ma modułu IO o podanym numerze.");
+            if(checkIoMod(weather_autom_cfg[currentRow].t_hot.addr, 2, "Czujnik temperatury szyny grzanej") == 1)
                 return;
-            }
-            else
-            {
-                cb = (QComboBox*)ui->ioModulesTable->cellWidget(weather_autom_cfg[currentRow].t_hot.addr - 1, 0);
-                if(cb->currentIndex() != 1)
-                {
-                    QMessageBox::critical(this, "Błąd", "Czujnik temperatury szyny grzanej\nModuł o podanym numerze nie jest modułem TH.");
-                    return;
-                }
-            }
             break;
         case 1:     //CAN
             break;
@@ -968,20 +1245,8 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
         switch(weather_autom_cfg[currentRow].t_cold.type)
         {
         case 0:     //TH
-            if(weather_autom_cfg[currentRow].t_cold.addr >= ui->ioModulesTable->rowCount())
-            {
-                QMessageBox::critical(this, "Błąd", "Czujnik temperatury szyny zimnej\nNie ma modułu IO o podanym numerze.");
+            if(checkIoMod(weather_autom_cfg[currentRow].t_cold.addr, 2, "Czujnik temperatury szyny zimnej") == 1)
                 return;
-            }
-            else
-            {
-                cb = (QComboBox*)ui->ioModulesTable->cellWidget(weather_autom_cfg[currentRow].t_cold.addr - 1, 0);
-                if(cb->currentIndex() != 1)
-                {
-                    QMessageBox::critical(this, "Błąd", "Czujnik temperatury szyny zimnej\nModuł o podanym numerze nie jest modułem TH.");
-                    return;
-                }
-            }
             break;
         case 1:     //CAN
             break;
@@ -1176,11 +1441,11 @@ void MainWindow::on_editCircuitList_clicked()
 {
     int currentRow = ui->circuitList->currentRow();
     int i;
-    QComboBox *cb;
 
     if(ui->editCircuitList->text() == "Zmień ustawienia")
     {
         ui->editCircuitList->setText("Zapisz zmiany");
+        ui->circuitList->setEnabled(false);
         ui->cirNameEdit->setEnabled(true);
         ui->cirActiveChk->setEnabled(true);
         ui->cirReferenceChk->setEnabled(true);
@@ -1243,94 +1508,27 @@ void MainWindow::on_editCircuitList_clicked()
         circuit_cfg[currentRow].rel_conf.module_id = ui->cirRelConfIOMod->value();
         circuit_cfg[currentRow].rel_conf.bit_no = ui->cirRelConfBitNo->value();
 
-        if(circuit_cfg[currentRow].rel_conf.module_id >= ui->ioModulesTable->rowCount())
-        {
-            QMessageBox::critical(this, "Błąd",
-                  QString("Potwierdzenie stycznika\nNie ma modułu IO o podanym numerze."));
+        if(checkIoMod(circuit_cfg[currentRow].rel_conf.module_id, 0, "Potwierdzenie stycznika") == 1)
             return;
-        }
-        else
-        {
-            cb = (QComboBox*)ui->ioModulesTable->cellWidget(circuit_cfg[currentRow].rel_conf.module_id - 1, 0);
-            if((cb->currentIndex() != 0) &&         /* io10/5 */
-                    (cb->currentIndex() != 1) &&    /* th     */
-                    (cb->currentIndex() != 2) &&    /* i12    */
-                    (cb->currentIndex() != 3) &&    /* i20    */
-                    (cb->currentIndex() != 7) &&    /* io4/7  */
-                    (cb->currentIndex() != 9))      /* gmr io */
-            {
-                QMessageBox::critical(this, "Błąd",
-                      QString("Potwierdzenie stycznika\nModuł o podanym numerze nie ma wejść cyfrowych."));
-                return;
-            }
-        }
-        if(circuit_cfg[currentRow].relay.module_id >= ui->ioModulesTable->rowCount())
-        {
-            QMessageBox::critical(this, "Błąd",
-                  QString("Sterowanie stycznikiem\nNie ma modułu IO o podanym numerze."));
+
+        if(checkIoMod(circuit_cfg[currentRow].relay.module_id, 1, "Sterowanie stycznikem") == 1)
             return;
-        }
-        else
-        {
-            cb = (QComboBox*)ui->ioModulesTable->cellWidget(circuit_cfg[currentRow].relay.module_id - 1, 0);
-            if((cb->currentIndex() != 0) &&         /* io10/5 */
-                    (cb->currentIndex() != 4) &&    /* o10    */
-                    (cb->currentIndex() != 7) &&    /* io4/7  */
-                    (cb->currentIndex() != 9))      /* gmr io */
-            {
-                QMessageBox::critical(this, "Błąd",
-                      QString("Sterowanie stycznikem\nModuł o podanym numerze nie ma wyjść cyfrowych."));
-                return;
-            }
-        }
 
         for(i = 0; i < 3; i++)
         {
             if((circuit_cfg[currentRow].phase_cfg[i].active != 0) &&
                     (circuit_cfg[currentRow].phase_cfg[i].conf_input.active != 0))
             {
-                if(circuit_cfg[currentRow].phase_cfg[i].conf_input.module_id >= ui->ioModulesTable->rowCount())
-                {
-                    QMessageBox::critical(this, "Błąd",
-                          QString("Moduł CVM fazy L%1\nNie ma modułu IO o podanym numerze.").arg(i + 1));
+                if(checkIoMod(circuit_cfg[currentRow].phase_cfg[i].conf_input.module_id, 0, QString("Potwierdzenie zabezpieczenia fazy L%1").arg(i + 1)) == 1)
                     return;
-                }
-                else
-                {
-                    cb = (QComboBox*)ui->ioModulesTable->cellWidget(circuit_cfg[currentRow].phase_cfg[i].conf_input.module_id - 1, 0);
-                    if((cb->currentIndex() != 0) &&         /* io10/5 */
-                            (cb->currentIndex() != 1) &&    /* th     */
-                            (cb->currentIndex() != 2) &&    /* i12    */
-                            (cb->currentIndex() != 3) &&    /* i20    */
-                            (cb->currentIndex() != 7) &&    /* io4/7  */
-                            (cb->currentIndex() != 9))      /* gmr io */
-                    {
-                        QMessageBox::critical(this, "Błąd",
-                              QString("Moduł CVM fazy L%1\nModuł o podanym numerze nie ma wejść cyfrowych.").arg(i + 1));
-                        return;
-                    }
-                }
             }
 
-            if(circuit_cfg[currentRow].phase_cfg[2].cvm_id >= ui->ioModulesTable->rowCount())
-            {
-                QMessageBox::critical(this, "Błąd",
-                      QString("Potwierdzenie zabezpieczenia fazy L%1\nNie ma modułu IO o podanym numerze.").arg(i + 1));
+            if(checkIoMod(circuit_cfg[currentRow].phase_cfg[i].cvm_id, 3, QString("Moduł CVM fazy L%1").arg(i + 1)) == 1)
                 return;
-            }
-            else
-            {
-                cb = (QComboBox*)ui->ioModulesTable->cellWidget(circuit_cfg[currentRow].phase_cfg[2].cvm_id - 1, 0);
-                if(cb->currentIndex() != 5)         /* CVM */
-                {
-                    QMessageBox::critical(this, "Błąd",
-                          QString("Potwierdzenie zabezpieczenia fazy L%1\nModuł o podanym numerze nie jest modułem CVM.").arg(i + 1));
-                    return;
-                }
-            }
         }
 
         ui->editCircuitList->setText("Zmień ustawienia");
+        ui->circuitList->setEnabled(true);
         ui->cirNameEdit->setEnabled(false);
         ui->cirActiveChk->setEnabled(false);
         ui->cirReferenceChk->setEnabled(false);
@@ -1348,4 +1546,19 @@ void MainWindow::on_editCircuitList_clicked()
 void MainWindow::on_circuitList_currentRowChanged(int currentRow)
 {
     setCircuitCfg(currentRow);
+}
+
+void MainWindow::on_modbusSlaveMediumCmb_currentIndexChanged(int index)
+{
+    switch(index)
+    {
+    case 0:
+        ui->modbusSlavePort->setMinimum(1);
+        ui->modbusSlavePort->setMaximum(6);
+        break;
+    case 1:
+        ui->modbusSlavePort->setMinimum(0);
+        ui->modbusSlavePort->setMaximum(65535);
+        break;
+    }
 }
