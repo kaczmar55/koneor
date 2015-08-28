@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QComboBox>
 #include <QDebug>
+#include <QTextCodec>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -35,8 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->sensorColdFrame->setEnabled(false);
     ui->sensorHotFrame->setEnabled(false);
     ui->blowSensorFRame->setEnabled(false);
-    ui->weatherAutomTempTable->setEnabled(false);
-    ui->frostTempFrame->setEnabled(false);
+    ui->sensorPwrCtrlFrame->setEnabled(false);
 
     ui->sensorColdTypeCmb->addItem("TH");
     ui->sensorColdTypeCmb->addItem("CAN");
@@ -61,6 +61,7 @@ MainWindow::MainWindow(QWidget *parent) :
             spin->setMinimum(-50.0);
             spin->setMaximum(100.0);
             spin->setDecimals(1);
+            spin->setSingleStep(0.1);
             ui->weatherAutomTempTable->setCellWidget(i, j, spin);
         }
     }
@@ -122,13 +123,20 @@ void MainWindow::on_actionOtw_rz_triggered()
             fileBuf = file.readAll();
             file.close();
 
-            if(fileBuf.size() != (eorkonf_data_size + sizeof(eorkonf_hdr_t)))
+            if(fileBuf.size() < (eorkonf_data_size + sizeof(eorkonf_hdr_t)))
             {
-                QMessageBox::critical(this, "Błąd", QString("Nieprawidłowy rozmiar pliku. Dane nie zostały wczytane\n") +
+                QMessageBox::critical(this, "Błąd", QString("Plik jest zbyt mały. Dane nie zostały wczytane\n") +
                                       QString("Wczytano: ") + QString::number(fileBuf.size()) +
                                       QString(" B\nOczekiwano: ") + QString::number(eorkonf_data_size + sizeof(eorkonf_hdr_t)) +
                                       QString(" B"));
                 return;
+            }
+            else if(fileBuf.size() > (eorkonf_data_size + sizeof(eorkonf_hdr_t)))
+            {
+                QMessageBox::critical(this, "Błąd", QString("Plik jest za duży. Wczytane dane mogą być błędne\n") +
+                                      QString("Wczytano: ") + QString::number(fileBuf.size()) +
+                                      QString(" B\nOczekiwano: ") + QString::number(eorkonf_data_size + sizeof(eorkonf_hdr_t)) +
+                                      QString(" B"));
             }
 
             setCfgStructs(fileBuf.data());
@@ -161,7 +169,7 @@ void MainWindow::on_actionOtw_rz_triggered()
             setMeterCfg();
             setGeneralWeatherMeasure();
             setWeatherAutomCfg(0);
-            setLockAutomCfg();
+            setTemperaturesCfg();
             setCircuitCfg(0);
             setIoCfg();
             setModbusSlaveCfg();
@@ -238,8 +246,8 @@ void MainWindow::on_actionZapisz_triggered()
             updateGeneralWeatherMeasure();
             fileBuf.append((char*)&general_weather_measure_cfg, sizeof(general_weather_measure_cfg_t));
             fileBuf.append((char*)weather_autom_cfg, sizeof(weather_autom_cfg_t) * WEATHER_AUTOM_COUNT);
-            updateLockAutomCfg();
-            fileBuf.append((char*)&lock_autom_cfg, sizeof(lock_autom_cfg_t));
+            updateTemperaturesCfg();
+            fileBuf.append((char*)&temperatures_cfg, sizeof(temperatures_cfg_t));
             fileBuf.append((char*)circuit_cfg, sizeof(circuit_cfg_t) * CIRCUIT_COUNT);
             fileBuf.append((char*)&group_cfg, sizeof(group_cfg_t));
             updateIoCfg();
@@ -302,8 +310,8 @@ void MainWindow::setCfgStructs(char* buf)
     memcpy(weather_autom_cfg, &buf[index], sizeof(weather_autom_cfg_t) * WEATHER_AUTOM_COUNT);
     index += sizeof(weather_autom_cfg_t) * WEATHER_AUTOM_COUNT;
 
-    memcpy(&lock_autom_cfg, &buf[index], sizeof(lock_autom_cfg_t));
-    index += sizeof(lock_autom_cfg_t);
+    memcpy(&temperatures_cfg, &buf[index], sizeof(temperatures_cfg_t));
+    index += sizeof(temperatures_cfg_t);
 
     memcpy(circuit_cfg, &buf[index], sizeof(circuit_cfg_t) * CIRCUIT_COUNT);
     index += sizeof(circuit_cfg_t) * CIRCUIT_COUNT;
@@ -332,9 +340,11 @@ void MainWindow::setCfgStructs(char* buf)
 
 bool MainWindow::updateGeneralCfg(void)
 {
+    QTextCodec *codec = QTextCodec::codecForName("ISO 8859-2");
+
     memset(&general_cfg, 0, sizeof(general_cfg_t));
-    strcpy(general_cfg.name, ui->objName->text().toUtf8().data());
-    strncpy(general_cfg.description, ui->objDescription->toPlainText().toUtf8().data(), 255);
+    strcpy(general_cfg.name, codec->fromUnicode(ui->objName->text()).data());
+    strncpy(general_cfg.description, codec->fromUnicode(ui->objDescription->toPlainText()).data(), 255);
     general_cfg.cir_count = ui->cirCount->value();
     general_cfg.weather_autom_count = ui->weatherAutomCount->value();
     general_cfg.ctrl_group_cnt = 6;
@@ -352,8 +362,10 @@ bool MainWindow::updateGeneralCfg(void)
 
 bool MainWindow::setGeneralCfg(void)
 {
-    ui->objName->setText(general_cfg.name);
-    ui->objDescription->setPlainText(general_cfg.description);
+    QTextCodec *codec = QTextCodec::codecForName("ISO 8859-2");
+
+    ui->objName->setText(codec->toUnicode(general_cfg.name));
+    ui->objDescription->setPlainText(codec->toUnicode(general_cfg.description));
     ui->cirCount->setValue(general_cfg.cir_count);
     ui->weatherAutomCount->setValue(general_cfg.weather_autom_count);
     ui->indOnTime->setValue(general_cfg.ind_on_time);
@@ -400,7 +412,9 @@ bool MainWindow::setIOModuleCfg(void)
     int i, row;
     QComboBox *cb;
 
-    ioModuleTable->clear();
+    while(ioModuleTable->rowCount() > 0)
+        ioModuleTable->removeRow(ioModuleTable->rowCount() - 1
+                                 );
     for(i = 0; i < IO_MODULE_COUNT; i++)
     {
         if(io_module_cfg[i].type != 0)
@@ -506,6 +520,7 @@ bool MainWindow::updateGeneralWeatherMeasure(void)
     uint16_t reg_no = ui->generalTempSensorRegNo->value();
     uint8_t bit_no;
 
+    memset(&general_weather_measure_cfg, 0, sizeof(general_weather_measure_cfg_t));
     general_weather_measure_cfg.temperature_sensor.type = ui->generalTempSensorTypeCmb->currentIndex();
     general_weather_measure_cfg.temperature_sensor.addr = addr;
     general_weather_measure_cfg.temperature_sensor.reg_no = reg_no;
@@ -561,8 +576,6 @@ bool MainWindow::setGeneralWeatherMeasure(void)
 
 bool MainWindow::setWeatherAutomCfg(int id)
 {
-    QDoubleSpinBox *spin;
-
     ui->sensorColdTypeCmb->setCurrentIndex(weather_autom_cfg[id].t_cold.type);
     ui->sensorColdAddr->setValue(weather_autom_cfg[id].t_cold.addr);
     ui->sensorColdRegNo->setValue(weather_autom_cfg[id].t_cold.reg_no);
@@ -576,28 +589,21 @@ bool MainWindow::setWeatherAutomCfg(int id)
     ui->blowSensorRegNo->setValue(weather_autom_cfg[id].snow_blow_sensor.reg_no);
     ui->blowSensorBitNo->setValue(weather_autom_cfg[id].snow_blow_sensor.bit_no);
 
-    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(0, 0);
-    spin->setValue(weather_autom_cfg[id].t_r_on_fr / 10.0);
-    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(0, 1);
-    spin->setValue(weather_autom_cfg[id].t_r_off_fr / 10.0);
-    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(1, 0);
-    spin->setValue(weather_autom_cfg[id].t_r_on_wet / 10.0);
-    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(1, 1);
-    spin->setValue(weather_autom_cfg[id].t_r_off_wet / 10.0);
-    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(2, 0);
-    spin->setValue(weather_autom_cfg[id].t_r_on_sn / 10.0);
-    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(2, 1);
-    spin->setValue(weather_autom_cfg[id].t_r_off_sn / 10.0);
-
-    ui->frostTempIn->setValue(weather_autom_cfg[id].t_frost_on_r / 10.0);
-    ui->frostTempOut->setValue(weather_autom_cfg[id].t_frost_off_r / 10.0);
+    if(weather_autom_cfg[id].sensor_pwr_ctrl.active == 0)
+        ui->sensorPwrCtrlChk->setChecked(false);
+    else
+        ui->sensorPwrCtrlChk->setChecked(true);
+    ui->sensorPwrCtrlIOMod->setValue(weather_autom_cfg[id].sensor_pwr_ctrl.module_id);
+    ui->sensorPwrCtrlBitNo->setValue(weather_autom_cfg[id].sensor_pwr_ctrl.bit_no);
 
     return true;
 }
 
 bool MainWindow::setCircuitCfg(int id)
 {
-    ui->cirNameEdit->setText(circuit_cfg[id].name);
+    QTextCodec *codec = QTextCodec::codecForName("ISO 8859-2");
+
+    ui->cirNameEdit->setText(codec->toUnicode(circuit_cfg[id].name));
     if(circuit_cfg[id].active == 0)
         ui->cirActiveChk->setChecked(false);
     else
@@ -669,27 +675,61 @@ bool MainWindow::setCircuitCfg(int id)
     return true;
 }
 
-bool MainWindow::updateLockAutomCfg(void)
+bool MainWindow::updateTemperaturesCfg(void)
 {
-    lock_autom_cfg.t_frost_on_l = ui->tLocksOn->value() * 10;
-    lock_autom_cfg.t_frost_off_l = ui->tLocksOff->value() * 10;
+    memset(&temperatures_cfg, 0, sizeof(temperatures_cfg_t));
+
+    QDoubleSpinBox *spin;
+
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(0, 0);
+    temperatures_cfg.t_r_on_fr = spin->value() * 10;
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(0, 1);
+    temperatures_cfg.t_r_off_fr = spin->value() * 10;
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(1, 0);
+    temperatures_cfg.t_r_on_wet = spin->value() * 10;
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(1, 1);
+    temperatures_cfg.t_r_off_wet = spin->value() * 10;
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(2, 0);
+    temperatures_cfg.t_r_on_sn = spin->value() * 10;
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(2, 1);
+    temperatures_cfg.t_r_off_sn = spin->value() * 10;
+
+    temperatures_cfg.t_frost_on_r = ui->frostTempIn->value() * 10;
+    temperatures_cfg.t_frost_off_r = ui->frostTempOut->value() * 10;
+
+    temperatures_cfg.t_frost_on_l = ui->tLocksOn->value() * 10;
+    temperatures_cfg.t_frost_off_l = ui->tLocksOff->value() * 10;
     return true;
 }
 
-bool MainWindow::setLockAutomCfg(void)
+bool MainWindow::setTemperaturesCfg(void)
 {
-    ui->tLocksOn->setValue(lock_autom_cfg.t_frost_on_l / 10.0);
-    ui->tLocksOff->setValue(lock_autom_cfg.t_frost_off_l / 10.0);
+    QDoubleSpinBox *spin;
+
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(0, 0);
+    spin->setValue(temperatures_cfg.t_r_on_fr / 10.0);
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(0, 1);
+    spin->setValue(temperatures_cfg.t_r_off_fr / 10.0);
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(1, 0);
+    spin->setValue(temperatures_cfg.t_r_on_wet / 10.0);
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(1, 1);
+    spin->setValue(temperatures_cfg.t_r_off_wet / 10.0);
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(2, 0);
+    spin->setValue(temperatures_cfg.t_r_on_sn / 10.0);
+    spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(2, 1);
+    spin->setValue(temperatures_cfg.t_r_off_sn / 10.0);
+
+    ui->frostTempIn->setValue(temperatures_cfg.t_frost_on_r / 10.0);
+    ui->frostTempOut->setValue(temperatures_cfg.t_frost_off_r / 10.0);
+
+    ui->tLocksOn->setValue(temperatures_cfg.t_frost_on_l / 10.0);
+    ui->tLocksOff->setValue(temperatures_cfg.t_frost_off_l / 10.0);
     return true;
 }
 
 bool MainWindow::updateIoCfg(void)
 {
-    io_cfg.sensor_pwr_ctrl.active = ui->sensorPwrCtrlChk->isChecked();
-    io_cfg.sensor_pwr_ctrl.module_id = ui->sensorPwrCtrlIOMod->value();
-    io_cfg.sensor_pwr_ctrl.bit_no = ui->sensorPwrCtrlBitNo->value();
-    if(io_cfg.sensor_pwr_ctrl.active != 0)
-        checkIoMod(io_cfg.sensor_pwr_ctrl.module_id, 0, "Potwierdzenie zasilania czujników");
+    memset(&io_cfg, 0, sizeof(io_cfg_t));
 
     io_cfg.dor.active = ui->dorChk->isChecked();
     io_cfg.dor.module_id = ui->dorIOMod->value();
@@ -732,13 +772,6 @@ bool MainWindow::updateIoCfg(void)
 
 bool MainWindow::setIoCfg(void)
 {
-    if(io_cfg.sensor_pwr_ctrl.active == 0)
-       ui->sensorPwrCtrlChk->setChecked(false);
-    else
-        ui->sensorPwrCtrlChk->setChecked(true);
-    ui->sensorPwrCtrlIOMod->setValue(io_cfg.sensor_pwr_ctrl.module_id);
-    ui->sensorPwrCtrlBitNo->setValue(io_cfg.sensor_pwr_ctrl.bit_no);
-
     if(io_cfg.dor.active == 0)
         ui->dorChk->setChecked(false);
     else
@@ -780,6 +813,7 @@ bool MainWindow::setIoCfg(void)
 
 bool MainWindow::updateModbusSlaveCfg(void)
 {
+    memset(&modbus_slave_cfg, 0, sizeof(modbus_slave_cfg_t));
     modbus_slave_cfg.active = ui->modbusSlaveActiveChk->isChecked();
     modbus_slave_cfg.addr = ui->modbusSlaveAddr->value();
     modbus_slave_cfg.transmission_medium = ui->modbusSlaveMediumCmb->currentIndex();
@@ -843,6 +877,7 @@ bool MainWindow::updateEthCfg(void)
     bool mask_err = false;
     bool gateway_err = false;
 
+    memset(&eth_cfg, 0, sizeof(eth_cfg_t));
     ip_err = strToIp(eth_cfg.ip, ui->ipAddrEdit->text());
     if(ip_err)
         QMessageBox::critical(this, "Błąd", "Błąd w adresie IP");
@@ -871,6 +906,8 @@ bool MainWindow::updateRsCfg(void)
 {
     bool ok;
     bool err = false;
+
+    memset(rs_cfg, 0, sizeof(rs_cfg_t) * RS_COUNT);
 
     rs_cfg[0].active = ui->rsActiveChk->isChecked();
     rs_cfg[0].type = 0;			//fizyczny
@@ -1191,7 +1228,6 @@ void MainWindow::on_weatherAutomList_currentRowChanged(int currentRow)
 void MainWindow::on_editWeatherAutomBtn_clicked()
 {
     int currentRow = ui->weatherAutomList->currentRow();
-    QDoubleSpinBox *spin;
 
     if(ui->editWeatherAutomBtn->text() == "Zmień ustawienia")
     {
@@ -1200,11 +1236,11 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
         ui->sensorColdFrame->setEnabled(true);
         ui->sensorHotFrame->setEnabled(true);
         ui->blowSensorFRame->setEnabled(true);
-        ui->weatherAutomTempTable->setEnabled(true);
-        ui->frostTempFrame->setEnabled(true);
+        ui->sensorPwrCtrlFrame->setEnabled(true);
     }
     else
     {
+        memset(&weather_autom_cfg[currentRow], 0, sizeof(weather_autom_cfg_t));
         weather_autom_cfg[currentRow].t_cold.type = ui->sensorColdTypeCmb->currentIndex();
         weather_autom_cfg[currentRow].t_cold.addr = ui->sensorColdAddr->value();
         weather_autom_cfg[currentRow].t_cold.reg_no = ui->sensorColdRegNo->value();
@@ -1217,6 +1253,10 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
         weather_autom_cfg[currentRow].snow_blow_sensor.addr = ui->blowSensorAddr->value();
         weather_autom_cfg[currentRow].snow_blow_sensor.reg_no = ui->blowSensorRegNo->value();
         weather_autom_cfg[currentRow].snow_blow_sensor.bit_no = ui->blowSensorBitNo->value();
+
+        weather_autom_cfg[currentRow].sensor_pwr_ctrl.active = ui->sensorPwrCtrlChk->isChecked();
+        weather_autom_cfg[currentRow].sensor_pwr_ctrl.module_id = ui->sensorPwrCtrlIOMod->value();
+        weather_autom_cfg[currentRow].sensor_pwr_ctrl.bit_no = ui->sensorPwrCtrlBitNo->value();
 
         switch(weather_autom_cfg[currentRow].snow_blow_sensor.type)
         {
@@ -1254,29 +1294,18 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
             break;
         }
 
+        if(weather_autom_cfg[currentRow].sensor_pwr_ctrl.active != 0)
+        {
+            if(checkIoMod(weather_autom_cfg[currentRow].sensor_pwr_ctrl.module_id, 2, "Potwierdzenie zasilania czujników") == 1)
+                return;
+        }
+
         ui->editWeatherAutomBtn->setText("Zmień ustawienia");
         ui->weatherAutomList->setEnabled(true);
         ui->sensorColdFrame->setEnabled(false);
         ui->sensorHotFrame->setEnabled(false);
         ui->blowSensorFRame->setEnabled(false);
-        ui->weatherAutomTempTable->setEnabled(false);
-        ui->frostTempFrame->setEnabled(false);
-
-        spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(0, 0);
-        weather_autom_cfg[currentRow].t_r_on_fr = spin->value() * 10;
-        spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(0, 1);
-        weather_autom_cfg[currentRow].t_r_off_fr = spin->value() * 10;
-        spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(1, 0);
-        weather_autom_cfg[currentRow].t_r_on_wet = spin->value() * 10;;
-        spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(1, 1);
-        weather_autom_cfg[currentRow].t_r_off_wet = spin->value() * 10;
-        spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(2, 0);
-        weather_autom_cfg[currentRow].t_r_on_sn = spin->value() * 10;
-        spin = (QDoubleSpinBox*)ui->weatherAutomTempTable->cellWidget(2, 1);
-        weather_autom_cfg[currentRow].t_r_off_sn = spin->value() * 10;
-
-        weather_autom_cfg[currentRow].t_frost_on_r = ui->frostTempIn->value() * 10;
-        weather_autom_cfg[currentRow].t_frost_off_r = ui->frostTempOut->value() * 10;
+        ui->sensorPwrCtrlFrame->setEnabled(false);
     }
 }
 
@@ -1411,6 +1440,7 @@ void MainWindow::on_cirCount_valueChanged(int arg1)
     int rows = ui->circuitList->count();
     int i;
     QListWidgetItem *itm;
+    QTextCodec *codec = QTextCodec::codecForName("ISO 8859-2");
 
     if((arg1 > rows) && (arg1 <= CIRCUIT_COUNT))
     {
@@ -1419,11 +1449,11 @@ void MainWindow::on_cirCount_valueChanged(int arg1)
             if(circuit_cfg[i].name[0] == '\0')
             {
                 ui->circuitList->addItem(QString("Obwód%1").arg(i + 1));
-                strcpy(circuit_cfg[i].name, QString("Obwód%1").arg(i + 1).toUtf8().data());
+                strcpy(circuit_cfg[i].name, codec->fromUnicode(QString("Obwód%1").arg(i + 1)).data());
             }
             else
             {
-                ui->circuitList->addItem(circuit_cfg[i].name);
+                ui->circuitList->addItem(codec->toUnicode(circuit_cfg[i].name));
             }
         }
     }
@@ -1441,6 +1471,7 @@ void MainWindow::on_editCircuitList_clicked()
 {
     int currentRow = ui->circuitList->currentRow();
     int i;
+    QTextCodec *codec = QTextCodec::codecForName("ISO 8859-2");
 
     if(ui->editCircuitList->text() == "Zmień ustawienia")
     {
@@ -1460,7 +1491,8 @@ void MainWindow::on_editCircuitList_clicked()
     }
     else
     {
-        strcpy(circuit_cfg[currentRow].name, ui->cirNameEdit->text().toUtf8().data());
+        memset(&circuit_cfg[currentRow], 0, sizeof(circuit_cfg_t));
+        strcpy(circuit_cfg[currentRow].name, codec->fromUnicode(ui->cirNameEdit->text()).data());
         ui->circuitList->item(currentRow)->setText(ui->cirNameEdit->text());
         circuit_cfg[currentRow].active = ui->cirActiveChk->isChecked();
         circuit_cfg[currentRow].reference = ui->cirReferenceChk->isChecked();
@@ -1521,10 +1553,10 @@ void MainWindow::on_editCircuitList_clicked()
             {
                 if(checkIoMod(circuit_cfg[currentRow].phase_cfg[i].conf_input.module_id, 0, QString("Potwierdzenie zabezpieczenia fazy L%1").arg(i + 1)) == 1)
                     return;
-            }
 
-            if(checkIoMod(circuit_cfg[currentRow].phase_cfg[i].cvm_id, 3, QString("Moduł CVM fazy L%1").arg(i + 1)) == 1)
-                return;
+                if(checkIoMod(circuit_cfg[currentRow].phase_cfg[i].cvm_id, 3, QString("Moduł CVM fazy L%1").arg(i + 1)) == 1)
+                    return;
+            }
         }
 
         ui->editCircuitList->setText("Zmień ustawienia");

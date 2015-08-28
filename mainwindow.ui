@@ -30,7 +30,7 @@
        <enum>QTabWidget::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>9</number>
+       <number>0</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -872,9 +872,9 @@
         <property name="geometry">
          <rect>
           <x>270</x>
-          <y>30</y>
+          <y>25</y>
           <width>220</width>
-          <height>106</height>
+          <height>98</height>
          </rect>
         </property>
         <property name="frameShape">
@@ -887,7 +887,7 @@
          <property name="geometry">
           <rect>
            <x>10</x>
-           <y>15</y>
+           <y>10</y>
            <width>40</width>
            <height>17</height>
           </rect>
@@ -900,7 +900,7 @@
          <property name="geometry">
           <rect>
            <x>120</x>
-           <y>10</y>
+           <y>5</y>
            <width>90</width>
            <height>27</height>
           </rect>
@@ -910,7 +910,7 @@
          <property name="geometry">
           <rect>
            <x>120</x>
-           <y>40</y>
+           <y>35</y>
            <width>90</width>
            <height>27</height>
           </rect>
@@ -926,7 +926,7 @@
          <property name="geometry">
           <rect>
            <x>120</x>
-           <y>70</y>
+           <y>65</y>
            <width>90</width>
            <height>27</height>
           </rect>
@@ -942,7 +942,7 @@
          <property name="geometry">
           <rect>
            <x>10</x>
-           <y>45</y>
+           <y>40</y>
            <width>110</width>
            <height>17</height>
           </rect>
@@ -955,7 +955,7 @@
          <property name="geometry">
           <rect>
            <x>10</x>
-           <y>75</y>
+           <y>70</y>
            <width>110</width>
            <height>17</height>
           </rect>
@@ -969,7 +969,7 @@
         <property name="geometry">
          <rect>
           <x>267</x>
-          <y>10</y>
+          <y>5</y>
           <width>230</width>
           <height>17</height>
          </rect>
@@ -982,7 +982,7 @@
         <property name="geometry">
          <rect>
           <x>515</x>
-          <y>10</y>
+          <y>5</y>
           <width>234</width>
           <height>17</height>
          </rect>
@@ -995,9 +995,9 @@
         <property name="geometry">
          <rect>
           <x>520</x>
-          <y>30</y>
+          <y>25</y>
           <width>220</width>
-          <height>106</height>
+          <height>98</height>
          </rect>
         </property>
         <property name="frameShape">
@@ -1010,7 +1010,7 @@
          <property name="geometry">
           <rect>
            <x>10</x>
-           <y>15</y>
+           <y>10</y>
            <width>40</width>
            <height>17</height>
           </rect>
@@ -1023,7 +1023,7 @@
          <property name="geometry">
           <rect>
            <x>120</x>
-           <y>10</y>
+           <y>5</y>
            <width>90</width>
            <height>27</height>
           </rect>
@@ -1033,7 +1033,7 @@
          <property name="geometry">
           <rect>
            <x>120</x>
-           <y>40</y>
+           <y>35</y>
            <width>90</width>
            <height>27</height>
           </rect>
@@ -1049,7 +1049,7 @@
          <property name="geometry">
           <rect>
            <x>120</x>
-           <y>70</y>
+           <y>65</y>
            <width>90</width>
            <height>27</height>
           </rect>
@@ -1065,7 +1065,7 @@
          <property name="geometry">
           <rect>
            <x>10</x>
-           <y>45</y>
+           <y>40</y>
            <width>110</width>
            <height>17</height>
           </rect>
@@ -1078,7 +1078,7 @@
          <property name="geometry">
           <rect>
            <x>10</x>
-           <y>75</y>
+           <y>70</y>
            <width>110</width>
            <height>17</height>
           </rect>
@@ -1125,8 +1125,8 @@
        <widget class="QFrame" name="blowSensorFRame">
         <property name="geometry">
          <rect>
-          <x>10</x>
-          <y>210</y>
+          <x>270</x>
+          <y>170</y>
           <width>220</width>
           <height>137</height>
          </rect>
@@ -1233,8 +1233,8 @@
        <widget class="QLabel" name="label_25">
         <property name="geometry">
          <rect>
-          <x>30</x>
-          <y>190</y>
+          <x>290</x>
+          <y>150</y>
           <width>180</width>
           <height>17</height>
          </rect>
@@ -1243,11 +1243,161 @@
          <string>Czujnik śniegu nawianego:</string>
         </property>
        </widget>
+       <widget class="QFrame" name="sensorPwrCtrlFrame">
+        <property name="geometry">
+         <rect>
+          <x>520</x>
+          <y>170</y>
+          <width>280</width>
+          <height>65</height>
+         </rect>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <widget class="QLabel" name="label_61">
+         <property name="geometry">
+          <rect>
+           <x>165</x>
+           <y>35</y>
+           <width>60</width>
+           <height>17</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Wejście:</string>
+         </property>
+        </widget>
+        <widget class="QSpinBox" name="sensorPwrCtrlIOMod">
+         <property name="geometry">
+          <rect>
+           <x>105</x>
+           <y>30</y>
+           <width>50</width>
+           <height>27</height>
+          </rect>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>24</number>
+         </property>
+         <property name="value">
+          <number>1</number>
+         </property>
+        </widget>
+        <widget class="QCheckBox" name="sensorPwrCtrlChk">
+         <property name="geometry">
+          <rect>
+           <x>5</x>
+           <y>5</y>
+           <width>200</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Potw. zasilania czujników</string>
+         </property>
+        </widget>
+        <widget class="QSpinBox" name="sensorPwrCtrlBitNo">
+         <property name="geometry">
+          <rect>
+           <x>220</x>
+           <y>30</y>
+           <width>50</width>
+           <height>27</height>
+          </rect>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>20</number>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_60">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>35</y>
+           <width>100</width>
+           <height>17</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Nr modułu IO:</string>
+         </property>
+        </widget>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="tab_13">
+       <attribute name="title">
+        <string>Temperatury</string>
+       </attribute>
+       <widget class="QTableWidget" name="weatherAutomTempTable">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>475</width>
+          <height>101</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+        <property name="verticalScrollBarPolicy">
+         <enum>Qt::ScrollBarAlwaysOff</enum>
+        </property>
+        <property name="horizontalScrollBarPolicy">
+         <enum>Qt::ScrollBarAlwaysOff</enum>
+        </property>
+        <attribute name="horizontalHeaderDefaultSectionSize">
+         <number>180</number>
+        </attribute>
+        <attribute name="horizontalHeaderMinimumSectionSize">
+         <number>50</number>
+        </attribute>
+        <attribute name="verticalHeaderDefaultSectionSize">
+         <number>25</number>
+        </attribute>
+        <row>
+         <property name="text">
+          <string>Duży mróz</string>
+         </property>
+        </row>
+        <row>
+         <property name="text">
+          <string>Deszcz marznący</string>
+         </property>
+        </row>
+        <row>
+         <property name="text">
+          <string>Śnieg</string>
+         </property>
+        </row>
+        <column>
+         <property name="text">
+          <string>Temp. załączenia grzania</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Temp. wyłączenia grzania</string>
+         </property>
+        </column>
+       </widget>
        <widget class="QFrame" name="frostTempFrame">
         <property name="geometry">
          <rect>
-          <x>270</x>
-          <y>260</y>
+          <x>10</x>
+          <y>140</y>
           <width>280</width>
           <height>60</height>
          </rect>
@@ -1345,66 +1495,11 @@
          </property>
         </widget>
        </widget>
-       <widget class="QTableWidget" name="weatherAutomTempTable">
-        <property name="geometry">
-         <rect>
-          <x>270</x>
-          <y>150</y>
-          <width>475</width>
-          <height>101</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>10</pointsize>
-         </font>
-        </property>
-        <property name="verticalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOff</enum>
-        </property>
-        <property name="horizontalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOff</enum>
-        </property>
-        <attribute name="horizontalHeaderDefaultSectionSize">
-         <number>180</number>
-        </attribute>
-        <attribute name="horizontalHeaderMinimumSectionSize">
-         <number>50</number>
-        </attribute>
-        <attribute name="verticalHeaderDefaultSectionSize">
-         <number>25</number>
-        </attribute>
-        <row>
-         <property name="text">
-          <string>Duży mróz</string>
-         </property>
-        </row>
-        <row>
-         <property name="text">
-          <string>Deszcz marznący</string>
-         </property>
-        </row>
-        <row>
-         <property name="text">
-          <string>Śnieg</string>
-         </property>
-        </row>
-        <column>
-         <property name="text">
-          <string>Temp. załączenia grzania</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>Temp. wyłączenia grzania</string>
-         </property>
-        </column>
-       </widget>
        <widget class="QFrame" name="frame_3">
         <property name="geometry">
          <rect>
-          <x>560</x>
-          <y>260</y>
+          <x>10</x>
+          <y>230</y>
           <width>271</width>
           <height>91</height>
          </rect>
@@ -2545,102 +2640,12 @@
        <attribute name="title">
         <string>Dodatkowe wejścia</string>
        </attribute>
-       <widget class="QFrame" name="frame_4">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>10</y>
-          <width>266</width>
-          <height>65</height>
-         </rect>
-        </property>
-        <property name="frameShape">
-         <enum>QFrame::StyledPanel</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Raised</enum>
-        </property>
-        <widget class="QLabel" name="label_61">
-         <property name="geometry">
-          <rect>
-           <x>165</x>
-           <y>35</y>
-           <width>60</width>
-           <height>17</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Wejście:</string>
-         </property>
-        </widget>
-        <widget class="QSpinBox" name="sensorPwrCtrlIOMod">
-         <property name="geometry">
-          <rect>
-           <x>105</x>
-           <y>30</y>
-           <width>50</width>
-           <height>27</height>
-          </rect>
-         </property>
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>24</number>
-         </property>
-         <property name="value">
-          <number>1</number>
-         </property>
-        </widget>
-        <widget class="QCheckBox" name="sensorPwrCtrlChk">
-         <property name="geometry">
-          <rect>
-           <x>5</x>
-           <y>5</y>
-           <width>200</width>
-           <height>22</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Potw. zasilania czujników</string>
-         </property>
-        </widget>
-        <widget class="QSpinBox" name="sensorPwrCtrlBitNo">
-         <property name="geometry">
-          <rect>
-           <x>220</x>
-           <y>30</y>
-           <width>40</width>
-           <height>27</height>
-          </rect>
-         </property>
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>20</number>
-         </property>
-        </widget>
-        <widget class="QLabel" name="label_60">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>35</y>
-           <width>100</width>
-           <height>17</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Nr modułu IO:</string>
-         </property>
-        </widget>
-       </widget>
        <widget class="QFrame" name="frame_5">
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>80</y>
-          <width>266</width>
+          <y>10</y>
+          <width>275</width>
           <height>65</height>
          </rect>
         </property>
@@ -2700,7 +2705,7 @@
           <rect>
            <x>220</x>
            <y>30</y>
-           <width>40</width>
+           <width>50</width>
            <height>27</height>
           </rect>
          </property>
@@ -2729,8 +2734,8 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>150</y>
-          <width>266</width>
+          <y>80</y>
+          <width>275</width>
           <height>65</height>
          </rect>
         </property>
@@ -2790,7 +2795,7 @@
           <rect>
            <x>220</x>
            <y>30</y>
-           <width>40</width>
+           <width>50</width>
            <height>27</height>
           </rect>
          </property>
@@ -2819,8 +2824,8 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>220</y>
-          <width>266</width>
+          <y>150</y>
+          <width>275</width>
           <height>65</height>
          </rect>
         </property>
@@ -2880,7 +2885,7 @@
           <rect>
            <x>220</x>
            <y>30</y>
-           <width>40</width>
+           <width>50</width>
            <height>27</height>
           </rect>
          </property>
@@ -2908,9 +2913,9 @@
        <widget class="QFrame" name="frame_8">
         <property name="geometry">
          <rect>
-          <x>280</x>
+          <x>300</x>
           <y>10</y>
-          <width>266</width>
+          <width>275</width>
           <height>65</height>
          </rect>
         </property>
@@ -2970,7 +2975,7 @@
           <rect>
            <x>220</x>
            <y>30</y>
-           <width>40</width>
+           <width>50</width>
            <height>27</height>
           </rect>
          </property>
@@ -2998,9 +3003,9 @@
        <widget class="QFrame" name="frame_9">
         <property name="geometry">
          <rect>
-          <x>280</x>
+          <x>300</x>
           <y>150</y>
-          <width>266</width>
+          <width>275</width>
           <height>65</height>
          </rect>
         </property>
@@ -3066,7 +3071,7 @@
           <rect>
            <x>220</x>
            <y>30</y>
-           <width>40</width>
+           <width>50</width>
            <height>27</height>
           </rect>
          </property>
@@ -3094,9 +3099,9 @@
        <widget class="QFrame" name="frame_10">
         <property name="geometry">
          <rect>
-          <x>280</x>
+          <x>300</x>
           <y>80</y>
-          <width>266</width>
+          <width>275</width>
           <height>65</height>
          </rect>
         </property>
@@ -3162,7 +3167,7 @@
           <rect>
            <x>220</x>
            <y>30</y>
-           <width>40</width>
+           <width>50</width>
            <height>27</height>
           </rect>
          </property>

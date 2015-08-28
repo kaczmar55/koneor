@@ -89,9 +89,21 @@ typedef struct __attribute((packed)){
 } general_weather_measure_cfg_t;
 
 typedef struct __attribute((packed)){
+    uint8_t active;
+    uint8_t module_id;
+    uint8_t bit_no;
+    uint8_t res;
+} binary_io_t;
+
+typedef struct __attribute((packed)){
     analog_sensor_cfg_t t_cold;
     analog_sensor_cfg_t t_hot;
     binary_sensor_cfg_t snow_blow_sensor;
+    binary_io_t sensor_pwr_ctrl;	//kontrola zasilania czujników: obecność, nr modułu IO + numer wejścia
+    uint16_t res[16];
+} weather_autom_cfg_t;
+
+typedef struct __attribute((packed)){
     int16_t t_r_on_fr;		//Załączenie/wyłączenie grzania dla Duży mróz
     int16_t t_r_off_fr;
     int16_t t_r_on_wet;		//Załączenie/wyłączenie grzania dla Deszcz marznący
@@ -100,21 +112,10 @@ typedef struct __attribute((packed)){
     int16_t t_r_off_sn;
     int16_t t_frost_on_r;		//Temperatura wejścia/wyjścia do dużego mrozu
     int16_t t_frost_off_r;
-    uint16_t res[16];
-} weather_autom_cfg_t;
-
-typedef struct __attribute((packed)){
     int16_t t_frost_on_l;		//progowa temperatura „dużego mrozu” dla zamknięć
     int16_t t_frost_off_l;		//progowa temperatura wyjścia z „dużego mrozu” dla zamknięć
     uint16_t res[16];
-} lock_autom_cfg_t;
-
-typedef struct __attribute((packed)){
-    uint8_t active;
-    uint8_t module_id;
-    uint8_t bit_no;
-    uint8_t res;
-} binary_io_t;
+} temperatures_cfg_t;
 
 typedef struct __attribute((packed)){
     uint8_t active;
@@ -152,14 +153,13 @@ typedef struct __attribute((packed)){
 
 //Konfiguracja dla dodatkowych wejść sygnalizacyjnych (może w konfiguracji logika wejścia?):
 typedef struct __attribute((packed)){
-    binary_io_t sensor_pwr_ctrl;	//kontrola zasilania czujników: obecność, nr modułu IO + numer wejścia
     binary_io_t dor;		//kontrola drzwi szafy: obecność, nr modułu IO + numer wejścia
     binary_io_t break_in;		//kontrola skrzyni transformatora: obecność, nr modułu IO + numer wejścia
     binary_io_t surge_protect;	//zadziałanie zabezpieczenia antyprzepięciowego: obecność, nr modułu IO + numer wejścia
     binary_io_t remote_ctrl;	//jak bedzie nieaktywne oznacza to, że jak nie ma lokalnego ani ręcznego, wtedy automatycznie robi się zdalnie
     binary_io_t local_ctrl;		//sterowanie lokalne (z panelu) - musi być
     binary_io_t hand_ctrl;		//sterowanie ręczne (przyciskami bez cpu) - musi być
-    uint8_t res[16];
+    uint8_t res[20];
 } io_cfg_t;
 
 typedef struct __attribute((packed)){
@@ -218,7 +218,7 @@ extern jsn2_module_cfg_t           jsn2_module_cfg[];
 extern meter_cfg_t                 meter_cfg[];
 extern general_weather_measure_cfg_t   general_weather_measure_cfg;
 extern weather_autom_cfg_t         weather_autom_cfg[];
-extern lock_autom_cfg_t            lock_autom_cfg;
+extern temperatures_cfg_t          temperatures_cfg;
 extern circuit_cfg_t               circuit_cfg[];
 extern group_cfg_t                 group_cfg;
 extern io_cfg_t                    io_cfg;

@@ -20,7 +20,7 @@ public:
     bool updateJsn2Cfg(void);
     bool updateMeterCfg(void);
     bool updateGeneralWeatherMeasure(void);
-    bool updateLockAutomCfg(void);
+    bool updateTemperaturesCfg(void);
     bool updateIoCfg(void);
     bool updateModbusSlaveCfg(void);
     bool updateEthCfg(void);
@@ -33,7 +33,7 @@ public:
     bool setMeterCfg(void);
     bool setGeneralWeatherMeasure(void);
     bool setWeatherAutomCfg(int id);
-    bool setLockAutomCfg(void);
+    bool setTemperaturesCfg(void);
     bool setCircuitCfg(int id);
     bool setIoCfg(void);
     bool setModbusSlaveCfg(void);

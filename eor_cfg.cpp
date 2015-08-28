@@ -8,7 +8,7 @@ jsn2_module_cfg_t           jsn2_module_cfg[JSN2_MODULE_COUNT];
 meter_cfg_t                 meter_cfg[METER_COUNT];
 general_weather_measure_cfg_t   general_weather_measure_cfg;
 weather_autom_cfg_t         weather_autom_cfg[WEATHER_AUTOM_COUNT];
-lock_autom_cfg_t            lock_autom_cfg;
+temperatures_cfg_t          temperatures_cfg;
 circuit_cfg_t               circuit_cfg[CIRCUIT_COUNT];
 group_cfg_t                 group_cfg;
 io_cfg_t                    io_cfg;
@@ -25,7 +25,7 @@ const int32_t eorkonf_data_size = sizeof(general_cfg_t) +
                                 sizeof(meter_cfg_t) * METER_COUNT +
                                 sizeof(general_weather_measure_cfg_t) +
                                 sizeof(weather_autom_cfg_t) * WEATHER_AUTOM_COUNT +
-                                sizeof(lock_autom_cfg_t) +
+                                sizeof(temperatures_cfg_t) +
                                 sizeof(circuit_cfg_t) * CIRCUIT_COUNT +
                                 sizeof(group_cfg_t) +
                                 sizeof(io_cfg_t) +
