@@ -30,7 +30,7 @@
        <enum>QTabWidget::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>5</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -1332,6 +1332,32 @@
           <string>Nr modułu IO:</string>
          </property>
         </widget>
+       </widget>
+       <widget class="QLabel" name="label_96">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>210</y>
+          <width>170</width>
+          <height>17</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Nr rozjazdu wzorcowego:</string>
+        </property>
+       </widget>
+       <widget class="QSpinBox" name="referenceCirNo">
+        <property name="geometry">
+         <rect>
+          <x>200</x>
+          <y>205</y>
+          <width>50</width>
+          <height>27</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <number>1</number>
+        </property>
        </widget>
       </widget>
       <widget class="QWidget" name="tab_13">

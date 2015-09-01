@@ -82,13 +82,6 @@ typedef struct __attribute((packed)){
 } binary_sensor_cfg_t;
 
 typedef struct __attribute((packed)){
-    analog_sensor_cfg_t temperature_sensor;
-    binary_sensor_cfg_t humidity_sensor;
-    binary_sensor_cfg_t snow_fall_sensor;
-    uint8_t res[16];
-} general_weather_measure_cfg_t;
-
-typedef struct __attribute((packed)){
     uint8_t active;
     uint8_t module_id;
     uint8_t bit_no;
@@ -96,11 +89,21 @@ typedef struct __attribute((packed)){
 } binary_io_t;
 
 typedef struct __attribute((packed)){
+    analog_sensor_cfg_t temperature_sensor;
+    binary_sensor_cfg_t humidity_sensor;
+    binary_sensor_cfg_t snow_fall_sensor;
+    binary_io_t sensor_pwr_ctrl;
+    uint8_t res[12];
+} general_weather_measure_cfg_t;
+
+
+typedef struct __attribute((packed)){
     analog_sensor_cfg_t t_cold;
     analog_sensor_cfg_t t_hot;
     binary_sensor_cfg_t snow_blow_sensor;
     binary_io_t sensor_pwr_ctrl;	//kontrola zasilania czujników: obecność, nr modułu IO + numer wejścia
-    uint16_t res[16];
+    uint8_t referenceCircuitNo;     //numer rozjazdu wzorcowego dla danego automatu
+    uint8_t res[31];
 } weather_autom_cfg_t;
 
 typedef struct __attribute((packed)){

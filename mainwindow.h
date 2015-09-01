@@ -77,6 +77,8 @@ private slots:
 
     void on_modbusSlaveMediumCmb_currentIndexChanged(int index);
 
+    void on_referenceCirNo_valueChanged(int arg1);
+
 private:
     Ui::MainWindow *ui;
 };

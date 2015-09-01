@@ -84,6 +84,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->l3Frame->setEnabled(false);
     ui->cirRelayFrame->setEnabled(false);
     ui->cirRelayConfFrame->setEnabled(false);
+    ui->referenceCirNo->setEnabled(false);
 }
 
 MainWindow::~MainWindow()
@@ -595,6 +596,8 @@ bool MainWindow::setWeatherAutomCfg(int id)
         ui->sensorPwrCtrlChk->setChecked(true);
     ui->sensorPwrCtrlIOMod->setValue(weather_autom_cfg[id].sensor_pwr_ctrl.module_id);
     ui->sensorPwrCtrlBitNo->setValue(weather_autom_cfg[id].sensor_pwr_ctrl.bit_no);
+
+    ui->referenceCirNo->setValue(weather_autom_cfg[id].referenceCircuitNo);
 
     return true;
 }
@@ -1237,6 +1240,7 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
         ui->sensorHotFrame->setEnabled(true);
         ui->blowSensorFRame->setEnabled(true);
         ui->sensorPwrCtrlFrame->setEnabled(true);
+        ui->referenceCirNo->setEnabled(true);
     }
     else
     {
@@ -1257,6 +1261,8 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
         weather_autom_cfg[currentRow].sensor_pwr_ctrl.active = ui->sensorPwrCtrlChk->isChecked();
         weather_autom_cfg[currentRow].sensor_pwr_ctrl.module_id = ui->sensorPwrCtrlIOMod->value();
         weather_autom_cfg[currentRow].sensor_pwr_ctrl.bit_no = ui->sensorPwrCtrlBitNo->value();
+
+        weather_autom_cfg[currentRow].referenceCircuitNo = ui->referenceCirNo->value();
 
         switch(weather_autom_cfg[currentRow].snow_blow_sensor.type)
         {
@@ -1306,6 +1312,7 @@ void MainWindow::on_editWeatherAutomBtn_clicked()
         ui->sensorHotFrame->setEnabled(false);
         ui->blowSensorFRame->setEnabled(false);
         ui->sensorPwrCtrlFrame->setEnabled(false);
+        ui->referenceCirNo->setEnabled(false);
     }
 }
 
@@ -1465,6 +1472,7 @@ void MainWindow::on_cirCount_valueChanged(int arg1)
             delete itm;
         }
     }
+    ui->referenceCirNo->setMaximum(arg1);
 }
 
 void MainWindow::on_editCircuitList_clicked()
@@ -1479,7 +1487,7 @@ void MainWindow::on_editCircuitList_clicked()
         ui->circuitList->setEnabled(false);
         ui->cirNameEdit->setEnabled(true);
         ui->cirActiveChk->setEnabled(true);
-        ui->cirReferenceChk->setEnabled(true);
+        //ui->cirReferenceChk->setEnabled(true);
         ui->cirTypeCmb->setEnabled(true);
         ui->cirGroupNo->setEnabled(true);
         ui->cirWeatherAutomNo->setEnabled(true);
@@ -1593,4 +1601,24 @@ void MainWindow::on_modbusSlaveMediumCmb_currentIndexChanged(int index)
         ui->modbusSlavePort->setMaximum(65535);
         break;
     }
+}
+
+void MainWindow::on_referenceCirNo_valueChanged(int arg1)
+{
+    int i;
+
+    weather_autom_cfg[ui->weatherAutomList->currentRow()].referenceCircuitNo = arg1;
+
+    for(i = 0; i < CIRCUIT_COUNT; i++)
+    {
+        circuit_cfg[i].reference = 0;
+    }
+
+    for(i = 0; i < WEATHER_AUTOM_COUNT; i++)
+    {
+        circuit_cfg[weather_autom_cfg[i].referenceCircuitNo - 1].reference = 1;
+    }
+
+    setWeatherAutomCfg(ui->weatherAutomList->currentRow());
+    setCircuitCfg(ui->circuitList->currentRow());
 }
